@@ -1,0 +1,186 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Владимир
+ */
+
+namespace app\components;
+
+
+class UsefulFunctions
+{
+    static function NumberAsWord($number, $gender = 1) {
+        $matches = null;
+        preg_match('/^(\d+)[\.\,](\d+)$/', (string)$number, $matches);
+        if (count($matches) > 0){
+            $int = $matches[1];
+            if (strlen($int) > 11) return "Целая часть слишком большая. Функция требует доработки.";
+            $intEnd = $int % 10 == 1 ? ' целая ' : ' целых ';
+            $intStr = $int > 0 ? UsefulFunctions::numToRusString($int, false, 2).$intEnd : '';
+            $fraction = $matches[2];
+            if (strlen($fraction) > 11) return "Дробная часть слишком маленькая. Функция требует доработки.";
+            $fractionStr = $fraction > 0 ? UsefulFunctions::numToRusString($fraction, true) : '';
+            return $intStr.' '.$fractionStr;
+        }
+        else {
+            preg_match('/^\d+$/', (string)$number, $matches);
+            if (count($matches) > 0){
+                if (strlen($matches[0]) > 11) return "Число слишком большое. Функция требует доработки.";
+                return self::numToRusString($matches[0], false, $gender);
+            }
+            else return "Не является числом";
+        }
+    }
+
+
+    private function numToRusString($number, $isFraction = true, $gender = 1){
+        if ($isFraction) $gender = 2;
+        $str = '';
+        $units = array('hundreds', 'tens', 'units');
+        $fraction = array( 1 => 'десят', 2 => 'сот',
+            3 => 'тысячн', 4 => 'десятитысячн', 5 => 'стотысячн',
+            6 => 'миллионн', 7 => 'десятимилионн', 8 => 'стомиллионн',
+            9 => 'миллиардн', 10 => 'десятимиллиардн', 11 => 'стомиллиардн');
+        $num = preg_replace('/[0]*$/', '', $number);
+        $length = strlen($num);
+        $div = pow(10, count($fraction));
+        $blocks = ceil(count($fraction) / 3);
+
+        for ($i = 1; $i <= $blocks; $i++){
+            $blockNumber = 0;
+            $unitDiv = 1000;
+            $catStr = '';
+            foreach ($units as $unit){
+                $unitDiv /= 10;
+                if ($unit == 'units' && $i==$blocks) break;
+                $category = intval($num / $div);
+                $preCategory = intval($num / ($div/10));
+                if ($category > 0){
+                    $catGender = $blocks > 2 && $i < $blocks - 1 ? 1 : 2;
+                    if ($preCategory < 20 && $preCategory > 10 && $unit == 'tens'){
+                        $catStr .= self::nameNumber($preCategory, $unit, $catGender).' ';
+                        $num -= $preCategory * ($div/10);
+                        $div /= 100;
+                        break;
+                    }
+                    else {
+                        $category = intval($num / $div);
+                        $catStr .= self::nameNumber($category, $unit, $catGender).' ';
+                        $num -= $category * $div;
+                        $blockNumber = $category * $unitDiv;
+                    }
+                }
+                $div /= 10;
+            }
+            $str .= $catStr;
+            if (strlen($catStr) > 1) {
+                if ($i == $blocks - 1){
+                    $str .= 'тысяч'.self::blockNameEnd($blockNumber, true);
+                }
+                elseif ($i == $blocks - 2){
+                    $str .= 'миллион'.self::blockNameEnd($blockNumber);
+                }
+                elseif ($i == $blocks - 3){
+                    $str .= 'миллиард'.self::blockNameEnd($blockNumber);
+                }
+            }
+        }
+        
+        $str .= self::nameNumber($num, 'units', $gender);
+        if ($isFraction) {
+            if ($num % 10 == 1) $end = 'ая';
+            elseif ($num % 10 == 2) $end = 'ые';
+            else $end = 'ыx';
+            return $str.' '.$fraction[$length].$end;
+        }
+        else {
+            return $str;
+        }
+    }
+
+    private static function nameNumber($num, $rank = 'units', $gender = 1){
+        $str = '';
+        switch ($num){
+            case 1:
+                if ($rank == 'tens'){
+                    return 'десять ';
+                }
+                else if ($rank == 'hundreds'){
+                    return 'сто';
+                }
+                else return $gender == 1 ? 'один' : 'одна';
+            case 2:
+                if ($rank == 'tens'){
+                    return 'двадцать ';
+                }
+                else if ($rank == 'hundreds'){
+                    return 'двести';
+                }
+                else return $gender == 1 ? 'два' : 'две';
+
+            case 3:
+                if ($rank == 'tens'){
+                    return 'тридцать';
+                }
+                else if ($rank == 'hundreds'){
+                    return 'триста';
+                }
+                else return 'три';
+            case 4:
+                if ($rank == 'tens'){
+                    return 'сорок';
+                }
+                else if ($rank == 'hundreds'){
+                    return 'четыреста';
+                }
+                else return 'четыре';
+            case 5: $str = 'пять'; break;
+            case 6: $str = 'шесть'; break;
+            case 7: $str = 'семь'; break;
+            case 8: $str = 'восемь'; break;
+            case 9:
+                if ($rank == 'tens'){
+                    return 'девяносто';
+                }
+                else if ($rank == 'units') return 'девять';
+                else $str = 'девять'; break;
+            case 11: return 'одинадцать';
+            case 12: return 'двенадцать';
+            case 13: return 'тринадцать';
+            case 14: return 'четырнадцать';
+            case 15: return 'пятнадцать';
+            case 16: return 'шестнадцать';
+            case 17: return 'семнадцать';
+            case 18: return 'восемнадцать';
+            case 19: return 'девятнадцать';
+        }
+
+        if ($rank == 'tens' && $num > 0){
+            return $str.'десят';
+        }
+        else if ($rank == 'hundreds' && $num > 0){
+            return $str.'сот';
+        }
+        return $str;
+    }
+
+
+    private static function blockNameEnd($blockNumber, $isThousand = false){
+        if ($isThousand){
+            switch ($blockNumber % 10){
+                case 1: $str = 'а '; break;
+                case 2: case 3: case 4: $str = 'и '; break;
+                default: $str = ' '; break;
+            }
+        }
+        else{
+            switch ($blockNumber % 10){
+                case 1: $str = ' '; break;
+                case 2: case 3: case 4: $str = 'а '; break;
+                default: $str = 'ов '; break;
+            }
+        }
+        return $str;
+    }
+
+}
