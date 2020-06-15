@@ -9,17 +9,17 @@ namespace app\components;
 
 class UsefulFunctions
 {
-    static function NumberAsWord($number, $gender = 1) {
+    static function NumberAsWord($number, $gender = 1){
         $matches = null;
         preg_match('/^(\d+)[\.\,](\d+)$/', (string)$number, $matches);
         if (count($matches) > 0){
             $int = $matches[1];
             if (strlen($int) > 11) return "Целая часть слишком большая. Функция требует доработки.";
             $intEnd = $int % 10 == 1 ? ' целая ' : ' целых ';
-            $intStr = $int > 0 ? UsefulFunctions::numToRusString($int, false, 2).$intEnd : '';
+            $intStr = $int > 0 ? self::numToRusString($int, false, 2).$intEnd : '';
             $fraction = $matches[2];
             if (strlen($fraction) > 11) return "Дробная часть слишком маленькая. Функция требует доработки.";
-            $fractionStr = $fraction > 0 ? UsefulFunctions::numToRusString($fraction, true) : '';
+            $fractionStr = $fraction > 0 ? self::numToRusString($fraction, true) : '';
             return $intStr.' '.$fractionStr;
         }
         else {
@@ -33,7 +33,7 @@ class UsefulFunctions
     }
 
 
-    private function numToRusString($number, $isFraction = true, $gender = 1){
+    private static function numToRusString($number, $isFraction = true, $gender = 1){
         if ($isFraction) $gender = 2;
         $str = '';
         $units = array('hundreds', 'tens', 'units');
